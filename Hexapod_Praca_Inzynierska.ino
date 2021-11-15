@@ -4,12 +4,9 @@
 Adafruit_PWMServoDriver firstPWMDriver = Adafruit_PWMServoDriver(0x40);
 Adafruit_PWMServoDriver secondPWMDriver = Adafruit_PWMServoDriver(0x41);
 
-#define SERVOMIN  100//150)
+#define SERVOMIN  100//150
 #define SERVOMAX  485//600
 #define SERVO_FREQ 50
-#define SERVO1 0
-#define SERVO2 1
-#define SERVO3 2
 
 void rotate(uint8_t servoDriverNumber, uint8_t servoNumber, uint16_t angleInDegrees)
 {
@@ -25,13 +22,6 @@ void rotate(uint8_t servoDriverNumber, uint8_t servoNumber, uint16_t angleInDegr
   }
 }
 
-enum LegPosition 
-{
-  DEFAULT_POSITION, 
-  UP, 
-  DOWN
-};
-
 class Leg 
 {
   class Part
@@ -39,8 +29,8 @@ class Leg
     public:
     uint8_t driverNumber;
     uint8_t partNumber;
-    uint8_t currentAngle;
-    uint8_t targetAngle;
+    int16_t currentAngle;
+    int16_t targetAngle;
 
     Part(){  }
     
@@ -50,49 +40,37 @@ class Leg
       partNumber = numberOfPart;
     }
   };
+  
   public:
     Leg(uint8_t lowerPartServoNumber, uint8_t upperPartServoNumber, uint8_t legsConnectorServoNumber)
     {
-      //lowerPart = lowerPartServoNumber;
-      //upperPart = upperPartServoNumber;
-      //legsConnector = legsConnectorServoNumber;
-      //partsCollection[1] = upperPartServoNumber;
-      //partsCollection[2] = legsConnectorServoNumber;
       partsCollection[0] = Part(1, lowerPartServoNumber);
       partsCollection[1] = Part(1, upperPartServoNumber);
       partsCollection[2] = Part(2, legsConnectorServoNumber);
     }
     void riseLeg(uint8_t numberOfIterations)
     {
-      uint8_t targetAngle;
       partsCollection[0].targetAngle = 135;
       partsCollection[1].targetAngle = 180;
       partsCollection[2].targetAngle = 135;
+
+      rotatePartsAsynchronously(numberOfIterations);
       
-      for(uint8_t iteration = 1; iteration <= numberOfIterations; iteration++)
-      {
-        for(uint8_t partIndex = 0; partIndex < 3; partIndex++)
-        {
-          targetAngle = partsCollection[partIndex].currentAngle + (((partsCollection[partIndex].targetAngle - partsCollection[partIndex].currentAngle) / numberOfIterations) * iteration);
-          rotate(partsCollection[partIndex].driverNumber, partsCollection[partIndex].partNumber, targetAngle);
-          delay(10);
-        }
-      }
-      /*rotate(1, lowerPart, 135);
-      delay(100);
-      rotate(1, upperPart, 180);
-      delay(100);
-      rotate(2, legsConnector, 0);
-      delay(100);*/
+      partsCollection[0].currentAngle = 135;
+      partsCollection[1].currentAngle = 180;
+      partsCollection[2].currentAngle = 135;
     }
-    void lowerLeg()
+    void lowerLeg(uint8_t numberOfIterations)
     {
-      rotate(1, lowerPart, 90);
-      delay(100);
-      rotate(1, upperPart, 160);
-      delay(100);
-      rotate(2, legsConnector, 180);
-      delay(100);
+      partsCollection[0].targetAngle = 90;
+      partsCollection[1].targetAngle = 90;
+      partsCollection[2].targetAngle = 90;
+      
+      rotatePartsAsynchronously(numberOfIterations);
+
+      partsCollection[0].currentAngle = 90;
+      partsCollection[1].currentAngle = 90;
+      partsCollection[2].currentAngle = 90;
     }
     void setNeutralPosition()
     {
@@ -102,19 +80,40 @@ class Leg
         partsCollection[partIndex].currentAngle = 90;
         delay(1500);
       }
-      currentLegPosition = DEFAULT_POSITION;
-      //rotate(1, lowerPart, 90);
-      //rotate(1, upperPart, 90);
+    }
+    void rotatePartsAsynchronously(uint8_t numberOfIterations)
+    {
+      uint8_t targetAngle;
+      int16_t partTargetAngle;
+      int16_t partCurrentAngle;
+      
+      for(uint8_t iteration = 1; iteration <= numberOfIterations; iteration++)
+      {
+        for(uint8_t partIndex = 0; partIndex < 3; partIndex++)
+        {
+          partTargetAngle = (int16_t)partsCollection[partIndex].targetAngle;
+          partCurrentAngle = (int16_t)partsCollection[partIndex].currentAngle;
+          targetAngle = partCurrentAngle + (((((partTargetAngle - partCurrentAngle)* 100) / numberOfIterations) * iteration) / 100);
+          targetAngle = (uint8_t)targetAngle;
+          Serial.println(targetAngle);
+          rotate(partsCollection[partIndex].driverNumber, partsCollection[partIndex].partNumber, targetAngle);
+          delay(10);
+        }
+      }
     }
   private:
     uint8_t lowerPart;
     uint8_t upperPart;
     uint8_t legsConnector;
     Part partsCollection[3];
-    LegPosition currentLegPosition;
 };
 
-Leg firstLeg(SERVO1, SERVO2, 0);
+Leg firstLeg(0, 1, 0);
+Leg secondLeg(2, 3, 2);
+Leg thirdLeg(4, 5, 4);
+Leg fourthLeg(7, 8, 6);
+Leg fifthLeg(10, 11, 8);
+Leg sixthLeg(13, 15, 10);
 
 void setup() {
   Serial.begin(9600);
@@ -126,63 +125,26 @@ void setup() {
   secondPWMDriver.setPWMFreq(SERVO_FREQ);
 
   firstLeg.setNeutralPosition();
+  secondLeg.setNeutralPosition();
+  thirdLeg.setNeutralPosition();
+  fourthLeg.setNeutralPosition();
+  fifthLeg.setNeutralPosition();
+  sixthLeg.setNeutralPosition();
 
   delay(10);
 }
 
 void loop() {
-  //firstLeg.riseLeg();
-  //firstPWMDriver.setPWM(1, 0, 200);
-  //secondPWMDriver.setPWM(1, 0, SERVOMIN);
-  //delay(2000);
-  //firstLeg.lowerLeg();
-  //firstPWMDriver.setPWM(1, 0, 300);
-  //secondPWMDriver.setPWM(1, 0, SERVOMAX);
-  //delay(2000);
-  //firstLeg.setNeutralPosition();
-  firstLeg.riseLeg(30);
+  firstLeg.riseLeg(60);
+  secondLeg.riseLeg(60);
+  thirdLeg.riseLeg(60);
+  fourthLeg.riseLeg(60);
+  fifthLeg.riseLeg(60);
+  sixthLeg.riseLeg(60);
+  firstLeg.lowerLeg(60);
+  secondLeg.lowerLeg(60);
+  thirdLeg.lowerLeg(60);
+  fourthLeg.lowerLeg(60);
+  fifthLeg.lowerLeg(60);
+  sixthLeg.lowerLeg(60);
 }
-
-/*void setNeutralPosition(uint8_t servoNumbers[])
-{
-   uint8_t arraySize = sizeof(servoNumbers);
-   uint8_t intSize = sizeof(servoNumbers[0]);
-   uint8_t length = arraySize / intSize;
-
-  for(uint8_t elementIndex = 0; elementIndex < length; elementIndex++)
-  {
-    rotate(servoNumbers[elementIndex], 90);
-  }
-}*/
-
-/*
- * void riseLeg(uint8_t firstServo, uint8_t secondServo)
-{
-  rotate(firstServo, 135);
-  rotate(secondServo, 180);
-}
-
-void lowerLeg(uint8_t firstServo, uint8_t secondServo)
-{
-  rotate(firstServo, 90);
-  rotate(secondServo, 160);
-}
-
-void movemement1()
-{
-  rotate(1, 0);
-  delay(2000);
-  rotate(1, 90);
-  delay(2000);
-  rotate(1, 180);
-  delay(2000);
-}
-
-void movemement2()
-{
-  riseLeg(SERVO1, SERVO2);
-  delay(2000);
-  lowerLeg(SERVO1, SERVO2);
-  delay(2000);
-}
- */
