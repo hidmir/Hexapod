@@ -50,30 +50,51 @@ class Leg
       partsCollection[1] = Part(1, upperPartServoNumber);
       partsCollection[2] = Part(2, legsConnectorServoNumber);
     }
+    
     void riseLeg(uint8_t numberOfIterations)
     {
-      partsCollection[0].targetAngle = 135;
-      partsCollection[1].targetAngle = 180;
-      partsCollection[2].targetAngle = 135;
+      partsCollection[0].targetAngle = 60;
+      partsCollection[1].targetAngle = 60;
 
       rotatePartsAsynchronously(numberOfIterations);
-      
-      partsCollection[0].currentAngle = 135;
-      partsCollection[1].currentAngle = 180;
-      partsCollection[2].currentAngle = 135;
+      saveCurrentPosition();
     }
+    
     void lowerLeg(uint8_t numberOfIterations)
+    {
+      partsCollection[0].targetAngle = 120;
+      partsCollection[1].targetAngle = 120;
+      
+      rotatePartsAsynchronously(numberOfIterations);
+      saveCurrentPosition();
+    }
+    
+    void rotateForward(uint8_t numberOfIterations)
+    {
+      partsCollection[2].targetAngle = 120;
+      
+      rotatePartsAsynchronously(numberOfIterations);
+      saveCurrentPosition();
+    }
+
+    void rotateBackward(uint8_t numberOfIterations)
+    {
+      partsCollection[2].targetAngle = 60;
+      
+      rotatePartsAsynchronously(numberOfIterations);
+      saveCurrentPosition();
+    }
+    
+    void setDefaultPosition(uint8_t numberOfIterations)
     {
       partsCollection[0].targetAngle = 90;
       partsCollection[1].targetAngle = 90;
       partsCollection[2].targetAngle = 90;
       
       rotatePartsAsynchronously(numberOfIterations);
-
-      partsCollection[0].currentAngle = 90;
-      partsCollection[1].currentAngle = 90;
-      partsCollection[2].currentAngle = 90;
+      saveCurrentPosition();
     }
+    
     void setNeutralPosition()
     {
       for(uint8_t partIndex = 0; partIndex < 3; partIndex++)
@@ -83,6 +104,13 @@ class Leg
         delay(1500);
       }
     }
+    
+  private:
+    uint8_t lowerPart;
+    uint8_t upperPart;
+    uint8_t legsConnector;
+    Part partsCollection[3];
+    
     void rotatePartsAsynchronously(uint8_t numberOfIterations)
     {
       uint8_t targetAngle;
@@ -103,11 +131,13 @@ class Leg
         }
       }
     }
-  private:
-    uint8_t lowerPart;
-    uint8_t upperPart;
-    uint8_t legsConnector;
-    Part partsCollection[3];
+
+    void saveCurrentPosition()
+    {
+      partsCollection[0].currentAngle = partsCollection[0].targetAngle;
+      partsCollection[1].currentAngle = partsCollection[1].targetAngle;
+      partsCollection[2].currentAngle = partsCollection[2].targetAngle;
+    }
 };
 
 class Hexapod
