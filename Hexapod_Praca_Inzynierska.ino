@@ -32,7 +32,7 @@ class Leg
     int16_t currentAngle;
     int16_t targetAngle;
 
-    Part(){  }
+    Part(){ }
     
     Part(uint8_t numberOfDriver, uint8_t numberOfPart)
     {
@@ -42,6 +42,8 @@ class Leg
   };
   
   public:
+    Leg() { }
+    
     Leg(uint8_t lowerPartServoNumber, uint8_t upperPartServoNumber, uint8_t legsConnectorServoNumber)
     {
       partsCollection[0] = Part(1, lowerPartServoNumber);
@@ -108,12 +110,61 @@ class Leg
     Part partsCollection[3];
 };
 
+class Hexapod
+{
+  public:
+    Hexapod(Leg firstLeg, Leg secondLeg, Leg thirdLeg, Leg fourthLeg, Leg fifthLeg, Leg sixthLeg)
+    {
+      firstRightLeg = firstLeg;
+      secondRightLeg = secondLeg;
+      thirdRightLeg = thirdLeg;
+      firstLeftLeg = fourthLeg;
+      secondLeftLeg = fifthLeg;
+      thirdLeftLeg = sixthLeg;
+    }
+
+    void setNeutralPosition()
+    {
+      firstRightLeg.setNeutralPosition();
+      secondRightLeg.setNeutralPosition();
+      thirdRightLeg.setNeutralPosition();
+      firstLeftLeg.setNeutralPosition();
+      secondLeftLeg.setNeutralPosition();
+      thirdLeftLeg.setNeutralPosition();
+    }
+
+    void moveForward()
+    {
+      firstRightLeg.riseLeg(60);
+      secondRightLeg.riseLeg(60);
+      thirdRightLeg.riseLeg(60);
+      firstLeftLeg.riseLeg(60);
+      secondLeftLeg.riseLeg(60);
+      thirdLeftLeg.riseLeg(60);
+      firstRightLeg.lowerLeg(60);
+      secondRightLeg.lowerLeg(60);
+      thirdRightLeg.lowerLeg(60);
+      firstLeftLeg.lowerLeg(60);
+      secondLeftLeg.lowerLeg(60);
+      thirdLeftLeg.lowerLeg(60);
+    }
+
+  private:
+    Leg firstRightLeg;
+    Leg secondRightLeg;
+    Leg thirdRightLeg;
+    Leg firstLeftLeg;
+    Leg secondLeftLeg;
+    Leg thirdLeftLeg;
+};
+
 Leg firstLeg(0, 1, 0);
 Leg secondLeg(2, 3, 2);
 Leg thirdLeg(4, 5, 4);
 Leg fourthLeg(7, 8, 6);
 Leg fifthLeg(10, 11, 8);
 Leg sixthLeg(13, 15, 10);
+Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg);
 
 void setup() {
   Serial.begin(9600);
@@ -124,27 +175,11 @@ void setup() {
   firstPWMDriver.setPWMFreq(SERVO_FREQ);
   secondPWMDriver.setPWMFreq(SERVO_FREQ);
 
-  firstLeg.setNeutralPosition();
-  secondLeg.setNeutralPosition();
-  thirdLeg.setNeutralPosition();
-  fourthLeg.setNeutralPosition();
-  fifthLeg.setNeutralPosition();
-  sixthLeg.setNeutralPosition();
+  hexapod.setNeutralPosition();
 
   delay(10);
 }
 
 void loop() {
-  firstLeg.riseLeg(60);
-  secondLeg.riseLeg(60);
-  thirdLeg.riseLeg(60);
-  fourthLeg.riseLeg(60);
-  fifthLeg.riseLeg(60);
-  sixthLeg.riseLeg(60);
-  firstLeg.lowerLeg(60);
-  secondLeg.lowerLeg(60);
-  thirdLeg.lowerLeg(60);
-  fourthLeg.lowerLeg(60);
-  fifthLeg.lowerLeg(60);
-  sixthLeg.lowerLeg(60);
+  hexapod.moveForward();
 }
