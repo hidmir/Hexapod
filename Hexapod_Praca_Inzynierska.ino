@@ -267,7 +267,7 @@ class Hexapod
       }
     }
     
-    void rotateLegsAsynchronously(uint8_t numberOfIterations)
+    void rotateLegsAsynchronously(uint8_t numberOfIterations, uint16_t delayTime)
     {
       uint8_t targetAngle;
       int16_t partTargetAngle;
@@ -291,11 +291,22 @@ class Hexapod
             targetAngle = (uint8_t)targetAngle;
             Serial.println(targetAngle);
             rotate(leg.partsCollection[partIndex].driverNumber, leg.partsCollection[partIndex].partNumber, targetAngle);
-            delay(10);
+            delay(delayTime);
           }
         }
       }
     }
+
+    void saveCurrentPosition()
+    {
+      for(uint8_t legIndex = 0; legIndex < 6; legIndex++)
+      {
+         for(uint8_t partIndex = 0; partIndex < 3; partIndex++)
+         {
+           legsCollection[legIndex].partsCollection[partIndex].currentAngle = legsCollection[legIndex].partsCollection[partIndex].targetAngle;
+         } 
+      }
+    } 
 };
 
 Leg firstLeg(0, 1, 0);
