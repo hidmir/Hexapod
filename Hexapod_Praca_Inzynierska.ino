@@ -222,42 +222,42 @@ class Hexapod
   private:
     Leg legsCollection[6];
 
-    void setTargetAngles(MovementType movementType)
+    void setupTargetAngles(MovementType movementType)
     {
       switch(movementType)
       {
         case SET_HOME_POSITION:
         {
-          setAngles(30, 0, 90);
+          setTargetAngles(30, 0, 90);
         } break;
         case SET_DEFAULT_POSITION:
         {
-          setAngles(100, 100, 90);
+          setTargetAngles(100, 100, 90);
         } break;
         case SET_NEUTRAL_POSITION:
         {
-          setAngles(90, 90, 90);
+          setTargetAngles(90, 90, 90);
         } break;
         case RISE_LEG:
         {
-          setAngles(50, 50, NULL_VALUE);
+          setTargetAngles(50, 50, NULL_VALUE);
         } break;
         case LOWER_LEG:
         {
-          setAngles(100, 100, NULL_VALUE);
+          setTargetAngles(100, 100, NULL_VALUE);
         } break;
         case ROTATE_FORWARD:
         {
-          setAngles(NULL_VALUE, NULL_VALUE, 120);
+          setTargetAngles(NULL_VALUE, NULL_VALUE, 120);
         } break;
         case ROTATE_BACKWARD:
         {
-          setAngles(NULL_VALUE, NULL_VALUE, 60);
+          setTargetAngles(NULL_VALUE, NULL_VALUE, 60);
         } break;
       }
     }
 
-    void setAngles(uint8_t lowerPartTargetAngle, uint8_t upperPartTargetAngle, uint8_t connectorPartTargetAngle)
+    void setTargetAngles(uint8_t lowerPartTargetAngle, uint8_t upperPartTargetAngle, uint8_t connectorPartTargetAngle)
     {
       for(uint8_t legIndex = 0; legIndex < 6; legIndex++)
       {
