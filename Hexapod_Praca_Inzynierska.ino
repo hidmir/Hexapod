@@ -8,6 +8,7 @@ Adafruit_PWMServoDriver secondPWMDriver = Adafruit_PWMServoDriver(0x41);
 #define SERVOMAX  485//600
 #define SERVO_FREQ 50
 #define NULL_VALUE -1
+#define DEFAULT_VALUE -2
 
 void rotate(uint8_t servoDriverNumber, uint8_t servoNumber, uint16_t angleInDegrees)
 {
@@ -68,67 +69,16 @@ class Leg
 {
   public:
     Part partsCollection[3];
+    Side side;
     
     Leg() { }
     
-    Leg(uint8_t lowerPartServoNumber, uint8_t upperPartServoNumber, uint8_t legsConnectorServoNumber)
+    Leg(Side robotSide, uint8_t lowerPartServoNumber, uint8_t upperPartServoNumber, uint8_t legsConnectorServoNumber)
     {
+      side = robotSide;
       partsCollection[0] = Part(LOWER, lowerPartServoNumber);
       partsCollection[1] = Part(UPPER, upperPartServoNumber);
       partsCollection[2] = Part(CONNECTOR, legsConnectorServoNumber);
-    }
-    
-    void riseLeg(uint8_t numberOfIterations)
-    {
-      partsCollection[0].targetAngle = 50;
-      partsCollection[1].targetAngle = 50;
-
-      rotatePartsAsynchronously(numberOfIterations);
-      saveCurrentPosition();
-    }
-    
-    void lowerLeg(uint8_t numberOfIterations)
-    {
-      partsCollection[0].targetAngle = 100;
-      partsCollection[1].targetAngle = 100;
-
-      rotatePartsAsynchronously(numberOfIterations);
-      saveCurrentPosition();
-    }
-    
-    void rotateForward(uint8_t numberOfIterations)
-    {
-      partsCollection[2].targetAngle = 120;
-      
-      rotatePartsAsynchronously(numberOfIterations);
-      saveCurrentPosition();
-    }
-
-    void rotateBackward(uint8_t numberOfIterations)
-    {
-      partsCollection[2].targetAngle = 60;
-      
-      rotatePartsAsynchronously(numberOfIterations);
-      saveCurrentPosition();
-    }
-
-    void setHomePosition(uint8_t numberOfIterations)
-    {
-      partsCollection[0].targetAngle = 30;
-      partsCollection[1].targetAngle = 0;
-
-      rotatePartsAsynchronously(numberOfIterations);
-      saveCurrentPosition();
-    }
-    
-    void setDefaultPosition(uint8_t numberOfIterations)
-    {
-      partsCollection[0].targetAngle = 100;
-      partsCollection[1].targetAngle = 100;
-      partsCollection[2].targetAngle = 90;
-      
-      rotatePartsAsynchronously(numberOfIterations);
-      saveCurrentPosition();
     }
     
     void setNeutralPosition()
@@ -178,13 +128,13 @@ class Leg
 class HexapodSettings
 {
   public:
-  uint8_t numberOfIterationsOfMovement;
-  uint16_t delayTimeOfMovement;
+  uint8_t numberOfIterations;
+  uint16_t delayTime;
 
-  HexapodSettings(uint8_t numberOfIterations, uint16_t delayTime) 
+  HexapodSettings(uint8_t numberOfIterationsOfMovement, uint16_t delayTimeOfMovement) 
   {
-    numberOfIterationsOfMovement = numberOfIterations;
-    delayTimeOfMovement = delayTime;
+    numberOfIterations = numberOfIterationsOfMovement;
+    delayTime = delayTimeOfMovement;
   } 
 };
 
@@ -199,39 +149,25 @@ class Hexapod
       legsCollection[3] = firstLeftLeg;
       legsCollection[4] = secondLeftLeg;
       legsCollection[5] = thirdLeftLeg;
-      defaultNumberOfIterations = hexapodSettings.numberOfIterationsOfMovement;
-      defaultDelayTime = hexapodSettings.delayTimeOfMovement;
+      defaultNumberOfIterations = hexapodSettings.numberOfIterations;
+      defaultDelayTime = hexapodSettings.delayTime;
     }
 
     void moveForward()
     {
-      //firstRightLeg.riseLeg(60);
-      /*secondRightLeg.riseLeg(60);
-      thirdRightLeg.riseLeg(60);
-      firstLeftLeg.riseLeg(60);
-      secondLeftLeg.riseLeg(60);
-      thirdLeftLeg.riseLeg(60);*/
-      //firstRightLeg.lowerLeg(60);
-      /*secondRightLeg.lowerLeg(60);
-      thirdRightLeg.lowerLeg(60);
-      firstLeftLeg.lowerLeg(60);
-      secondLeftLeg.lowerLeg(60);
-      thirdLeftLeg.lowerLeg(60);*/
+      
     }
 
     void setNeutralPosition()
     {
-      /*firstRightLeg.setNeutralPosition();
-      secondRightLeg.setNeutralPosition();
-      thirdRightLeg.setNeutralPosition();
-      firstLeftLeg.setNeutralPosition();
-      secondLeftLeg.setNeutralPosition();
-      thirdLeftLeg.setNeutralPosition();*/
+      
     }
 
     void setHomePosition()
     {
-      //firstRightLeg.setHomePosition(60);
+      setupTargetAngles(SET_HOME_POSITION);
+      rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
+      saveCurrentPosition();
     }
 
   private:
@@ -249,7 +185,7 @@ class Hexapod
         } break;
         case SET_DEFAULT_POSITION:
         {
-          setTargetAngles(100, 100, 90);
+          setTargetAngles(80, 80, 90);
         } break;
         case SET_NEUTRAL_POSITION:
         {
@@ -284,7 +220,7 @@ class Hexapod
       }
     }
     
-    void rotateLegsAsynchronously(uint8_t numberOfIterations = defaultNumberOfIterations, uint16_t delayTime = defaultDelayTime)
+    void rotateLegsAsynchronously(uint8_t numberOfIterations, uint16_t delayTime)
     {
       uint8_t targetAngle;
       int16_t partTargetAngle;
@@ -292,6 +228,8 @@ class Hexapod
       Part partsCollection[3];
       Part part;
       Leg leg;
+      numberOfIterations = numberOfIterations == DEFAULT_VALUE ? defaultNumberOfIterations : numberOfIterations;
+      delayTime = delayTime == DEFAULT_VALUE ? defaultDelayTime : delayTime;
 
       for(uint8_t iteration = 1; iteration <= numberOfIterations; iteration++)
       {
@@ -326,12 +264,12 @@ class Hexapod
     } 
 };
 
-Leg firstLeg(0, 1, 0);
-Leg secondLeg(2, 3, 2);
-Leg thirdLeg(4, 5, 4);
-Leg fourthLeg(7, 8, 6);
-Leg fifthLeg(10, 11, 8);
-Leg sixthLeg(13, 15, 10);
+Leg firstLeg(RIGHT, 0, 1, 0);
+Leg secondLeg(RIGHT, 2, 3, 2);
+Leg thirdLeg(RIGHT, 4, 5, 4);
+Leg fourthLeg(LEFT, 7, 8, 6);
+Leg fifthLeg(LEFT, 10, 11, 8);
+Leg sixthLeg(LEFT, 13, 15, 10);
 HexapodSettings hexapodSettings(60, 10);
 Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
 
