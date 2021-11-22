@@ -199,6 +199,8 @@ class Hexapod
       legsCollection[3] = firstLeftLeg;
       legsCollection[4] = secondLeftLeg;
       legsCollection[5] = thirdLeftLeg;
+      defaultNumberOfIterations = hexapodSettings.numberOfIterationsOfMovement;
+      defaultDelayTime = hexapodSettings.delayTimeOfMovement;
     }
 
     void moveForward()
@@ -234,6 +236,8 @@ class Hexapod
 
   private:
     Leg legsCollection[6];
+    uint8_t defaultNumberOfIterations;
+    uint16_t defaultDelayTime;
 
     void setupTargetAngles(MovementType movementType)
     {
@@ -280,7 +284,7 @@ class Hexapod
       }
     }
     
-    void rotateLegsAsynchronously(uint8_t numberOfIterations, uint16_t delayTime)
+    void rotateLegsAsynchronously(uint8_t numberOfIterations = defaultNumberOfIterations, uint16_t delayTime = defaultDelayTime)
     {
       uint8_t targetAngle;
       int16_t partTargetAngle;
