@@ -175,10 +175,23 @@ class Leg
     }
 };
 
+class HexapodSettings
+{
+  public:
+  uint8_t numberOfIterationsOfMovement;
+  uint16_t delayTimeOfMovement;
+
+  HexapodSettings(uint8_t numberOfIterations, uint16_t delayTime) 
+  {
+    numberOfIterationsOfMovement = numberOfIterations;
+    delayTimeOfMovement = delayTime;
+  } 
+};
+
 class Hexapod
 {
   public:
-    Hexapod(Leg firstRightLeg, Leg secondRightLeg, Leg thirdRightLeg, Leg firstLeftLeg, Leg secondLeftLeg, Leg thirdLeftLeg)
+    Hexapod(Leg firstRightLeg, Leg secondRightLeg, Leg thirdRightLeg, Leg firstLeftLeg, Leg secondLeftLeg, Leg thirdLeftLeg, HexapodSettings hexapodSettings)
     {
       legsCollection[0] = firstRightLeg;
       legsCollection[1] = secondRightLeg;
@@ -315,7 +328,8 @@ Leg thirdLeg(4, 5, 4);
 Leg fourthLeg(7, 8, 6);
 Leg fifthLeg(10, 11, 8);
 Leg sixthLeg(13, 15, 10);
-Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg);
+HexapodSettings hexapodSettings(60, 10);
+Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
 
 void setup() {
   Serial.begin(9600);
