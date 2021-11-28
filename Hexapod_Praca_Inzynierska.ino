@@ -233,9 +233,18 @@ class Hexapod
     {
       for(uint8_t legIndex = 0; legIndex < 6; legIndex++)
       {
-        legsCollection[legIndex].partsCollection[0].targetAngle = lowerPartTargetAngle != NULL_VALUE ? lowerPartTargetAngle : legsCollection[legIndex].partsCollection[0].currentAngle;
-        legsCollection[legIndex].partsCollection[1].targetAngle = upperPartTargetAngle != NULL_VALUE ? upperPartTargetAngle : legsCollection[legIndex].partsCollection[1].currentAngle;
-        legsCollection[legIndex].partsCollection[2].targetAngle = connectorPartTargetAngle != NULL_VALUE ? connectorPartTargetAngle : legsCollection[legIndex].partsCollection[2].currentAngle;
+        if(legsCollection[legIndex].side == RIGHT)
+        {
+          legsCollection[legIndex].partsCollection[0].targetAngle = lowerPartTargetAngle != NULL_VALUE ? lowerPartTargetAngle : legsCollection[legIndex].partsCollection[0].currentAngle;
+          legsCollection[legIndex].partsCollection[1].targetAngle = upperPartTargetAngle != NULL_VALUE ? upperPartTargetAngle : legsCollection[legIndex].partsCollection[1].currentAngle;
+          legsCollection[legIndex].partsCollection[2].targetAngle = connectorPartTargetAngle != NULL_VALUE ? connectorPartTargetAngle : legsCollection[legIndex].partsCollection[2].currentAngle;
+        }
+        else
+        {
+          legsCollection[legIndex].partsCollection[0].targetAngle = lowerPartTargetAngle != NULL_VALUE ? (90 + (90 - lowerPartTargetAngle)) : legsCollection[legIndex].partsCollection[0].currentAngle;
+          legsCollection[legIndex].partsCollection[1].targetAngle = upperPartTargetAngle != NULL_VALUE ? (90 + (90 - upperPartTargetAngle)) : legsCollection[legIndex].partsCollection[1].currentAngle;
+          legsCollection[legIndex].partsCollection[2].targetAngle = connectorPartTargetAngle != NULL_VALUE ? (90 + (90 - connectorPartTargetAngle)) : legsCollection[legIndex].partsCollection[2].currentAngle;
+        }
       }
     }
     
