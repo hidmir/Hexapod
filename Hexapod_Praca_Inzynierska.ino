@@ -160,7 +160,22 @@ class Hexapod
 
     void setNeutralPosition()
     {
+      setupTargetAngles(SET_NEUTRAL_POSITION);
       
+      Leg leg;
+      Part part;
+      for(uint8_t legIndex = 0; legIndex < 6; legIndex++)
+      {
+        leg = legsCollection[legIndex];
+        for(uint8_t partIndex = 0; partIndex < 3; partIndex++)
+        {
+          part = leg.partsCollection[partIndex];
+          rotate(part.driverNumber, part.partNumber, part.targetAngle);
+          delay(1000);
+        }
+      }
+      
+      saveCurrentPosition();
     }
 
     void setHomePosition()
@@ -207,6 +222,10 @@ class Hexapod
         {
           setTargetAngles(NULL_VALUE, NULL_VALUE, 60);
         } break;
+        default:
+        {
+          setTargetAngles(0, 0, 0);
+        } break;
       }
     }
 
@@ -225,9 +244,8 @@ class Hexapod
       uint8_t targetAngle;
       int16_t partTargetAngle;
       int16_t partCurrentAngle;
-      Part partsCollection[3];
-      Part part;
       Leg leg;
+      Part part;
       numberOfIterations = numberOfIterations == DEFAULT_VALUE ? defaultNumberOfIterations : numberOfIterations;
       delayTime = delayTime == DEFAULT_VALUE ? defaultDelayTime : delayTime;
 
@@ -236,16 +254,15 @@ class Hexapod
         for(uint8_t legIndex = 0; legIndex < 6; legIndex++)
         {
           leg = legsCollection[legIndex];
-          
           for(uint8_t partIndex = 0; partIndex < 3; partIndex++)
           {
-            part = partsCollection[partIndex];
-            partTargetAngle = (int16_t)leg.partsCollection[partIndex].targetAngle;
-            partCurrentAngle = (int16_t)leg.partsCollection[partIndex].currentAngle;
+            part = leg.partsCollection[partIndex];
+            partTargetAngle = (int16_t)part.targetAngle;
+            partCurrentAngle = (int16_t)part.currentAngle;
             targetAngle = partCurrentAngle + (((((partTargetAngle - partCurrentAngle)* 100) / numberOfIterations) * iteration) / 100);
             targetAngle = (uint8_t)targetAngle;
             Serial.println(targetAngle);
-            rotate(leg.partsCollection[partIndex].driverNumber, leg.partsCollection[partIndex].partNumber, targetAngle);
+            rotate(part.driverNumber, part.partNumber, targetAngle);
             delay(delayTime);
           }
         }
@@ -270,7 +287,7 @@ Leg thirdLeg(RIGHT, 4, 5, 4);
 Leg fourthLeg(LEFT, 7, 8, 6);
 Leg fifthLeg(LEFT, 10, 11, 8);
 Leg sixthLeg(LEFT, 13, 15, 10);
-HexapodSettings hexapodSettings(60, 10);
+HexapodSettings hexapodSettings(50, 5);
 Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
 
 void setup() {
@@ -282,7 +299,8 @@ void setup() {
   firstPWMDriver.setPWMFreq(SERVO_FREQ);
   secondPWMDriver.setPWMFreq(SERVO_FREQ);
 
-  //hexapod.setNeutralPosition();
+  hexapod.setNeutralPosition();
+  //hexapod.setHomePosition();
 
   delay(10);
 }
