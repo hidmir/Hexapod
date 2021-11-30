@@ -185,6 +185,13 @@ class Hexapod
       saveCurrentPosition();
     }
 
+    void setDefaultPosition()
+    {
+      setupTargetAngles(SET_DEFAULT_POSITION);
+      rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
+      saveCurrentPosition();
+    }
+
   private:
     Leg legsCollection[6];
     uint8_t defaultNumberOfIterations;
@@ -200,7 +207,7 @@ class Hexapod
         } break;
         case SET_DEFAULT_POSITION:
         {
-          setTargetAngles(80, 80, 90);
+          setTargetAngles(120, 120, 90);
         } break;
         case SET_NEUTRAL_POSITION:
         {
@@ -263,7 +270,7 @@ class Hexapod
         for(uint8_t legIndex = 0; legIndex < 6; legIndex++)
         {
           leg = legsCollection[legIndex];
-          for(uint8_t partIndex = 0; partIndex < 3; partIndex++)
+          for(uint8_t partIndex = 0; partIndex < 2; partIndex++)
           {
             part = leg.partsCollection[partIndex];
             partTargetAngle = (int16_t)part.targetAngle;
@@ -296,7 +303,7 @@ Leg thirdLeg(RIGHT, 4, 5, 2);
 Leg fourthLeg(LEFT, 7, 8, 12);
 Leg fifthLeg(LEFT, 10, 11, 7);
 Leg sixthLeg(LEFT, 13, 15, 4);
-HexapodSettings hexapodSettings(50, 5);
+HexapodSettings hexapodSettings(50, 0);
 Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
 
 void setup() {
@@ -309,7 +316,8 @@ void setup() {
   secondPWMDriver.setPWMFreq(SERVO_FREQ);
 
   hexapod.setNeutralPosition();
-  //hexapod.setHomePosition();
+  hexapod.setHomePosition();
+  //hexapod.setDefaultPosition();
 
   delay(10);
 }
@@ -317,4 +325,5 @@ void setup() {
 void loop() {
   //hexapod.moveForward();
   //hexapod.setHomePosition();
+  //hexapod.setDefaultPosition();
 }
