@@ -290,12 +290,12 @@ class Hexapod
     } 
 };
 
-Leg firstLeg(RIGHT, 0, 1, 0);
-Leg secondLeg(RIGHT, 2, 3, 2);
-Leg thirdLeg(RIGHT, 4, 5, 4);
-Leg fourthLeg(LEFT, 7, 8, 6);
-Leg fifthLeg(LEFT, 10, 11, 8);
-Leg sixthLeg(LEFT, 13, 15, 10);
+Leg firstLeg(RIGHT, 0, 1, 15);
+Leg secondLeg(RIGHT, 2, 3, 10);
+Leg thirdLeg(RIGHT, 4, 5, 2);
+Leg fourthLeg(LEFT, 7, 8, 12);
+Leg fifthLeg(LEFT, 10, 11, 7);
+Leg sixthLeg(LEFT, 13, 15, 4);
 HexapodSettings hexapodSettings(50, 5);
 Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
 
