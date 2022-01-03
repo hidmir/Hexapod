@@ -3,5 +3,6 @@
     "configuration": "cpu=atmega328",
     "board": "arduino:avr:nano",
     "programmer": "arduino:avrispmkii",
-    "output": "build"
+    "output": "build",
+    "port": "COM8"
 }
