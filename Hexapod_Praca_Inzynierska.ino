@@ -6,6 +6,8 @@ Adafruit_PWMServoDriver secondPWMDriver = Adafruit_PWMServoDriver(0x41);
 
 #define SERVOMIN 100 //150
 #define SERVOMAX 485 //600
+#define MICROSECONDSMIN 700
+#define MICROSECONDSMAX 2100
 #define SERVO_FREQ 50
 #define NULL_VALUE -1
 #define DEFAULT_VALUE -2
@@ -21,6 +23,20 @@ void rotate(uint8_t servoDriverNumber, uint8_t servoNumber, uint16_t angleInDegr
   else
   {
     secondPWMDriver.setPWM(servoNumber, 0, pulseLength);
+  }
+}
+
+void rotateUsingMicroseconds(uint8_t servoDriverNumber, uint8_t servoNumber, uint16_t angleInDegrees)
+{
+  uint16_t microseconds = map(angleInDegrees, 20, 160, MICROSECONDSMIN, MICROSECONDSMAX);
+
+  if (servoDriverNumber == 1)
+  {
+    firstPWMDriver.writeMicroseconds(servoNumber, microseconds);
+  }
+  else
+  {
+    secondPWMDriver.writeMicroseconds(servoNumber, microseconds);
   }
 }
 
@@ -110,7 +126,6 @@ private:
         partCurrentAngle = (int16_t)partsCollection[partIndex].currentAngle;
         targetAngle = partCurrentAngle + (((((partTargetAngle - partCurrentAngle) * 100) / numberOfIterations) * iteration) / 100);
         targetAngle = (uint8_t)targetAngle;
-        Serial.println(targetAngle);
         rotate(partsCollection[partIndex].driverNumber, partsCollection[partIndex].partNumber, targetAngle);
         delay(10);
       }
@@ -170,7 +185,7 @@ public:
       {
         part = leg.partsCollection[partIndex];
         rotate(part.driverNumber, part.partNumber, part.targetAngle);
-        delay(1000);
+        delay(400);
       }
     }
 
@@ -237,7 +252,7 @@ private:
     break;
     default:
     {
-      setTargetAngles(0, 0, 0);
+      setTargetAngles(90, 90, 90);
     }
     break;
     }
@@ -262,7 +277,7 @@ private:
     }
   }
 
-  void rotateLegsAsynchronously(uint8_t numberOfIterations, uint16_t delayTime)
+  void rotateLegsAsynchronously(int16_t numberOfIterations, int16_t delayTime)
   {
     uint8_t targetAngle;
     int16_t partTargetAngle;
@@ -272,7 +287,7 @@ private:
     numberOfIterations = numberOfIterations == DEFAULT_VALUE ? defaultNumberOfIterations : numberOfIterations;
     delayTime = delayTime == DEFAULT_VALUE ? defaultDelayTime : delayTime;
 
-    for (uint8_t iteration = 1; iteration <= numberOfIterations; iteration++)
+    for (int16_t iteration = 1; iteration <= numberOfIterations; iteration++)
     {
       for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
       {
@@ -282,10 +297,15 @@ private:
           part = leg.partsCollection[partIndex];
           partTargetAngle = (int16_t)part.targetAngle;
           partCurrentAngle = (int16_t)part.currentAngle;
+          if (partTargetAngle == partCurrentAngle)
+          {
+            continue;
+          }
           targetAngle = partCurrentAngle + (((((partTargetAngle - partCurrentAngle) * 100) / numberOfIterations) * iteration) / 100);
           targetAngle = (uint8_t)targetAngle;
-          Serial.println(targetAngle);
+          //Serial.println(targetAngle);
           rotate(part.driverNumber, part.partNumber, targetAngle);
+          //rotateUsingMicroseconds(part.driverNumber, part.partNumber, targetAngle);
           delay(delayTime);
         }
       }
@@ -310,7 +330,7 @@ Leg thirdLeg(RIGHT, 4, 5, 2);
 Leg fourthLeg(LEFT, 7, 8, 12);
 Leg fifthLeg(LEFT, 10, 11, 7);
 Leg sixthLeg(LEFT, 13, 15, 4);
-HexapodSettings hexapodSettings(50, 0);
+HexapodSettings hexapodSettings(30, 20); //iterations delaytime
 Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
 
 void setup()
