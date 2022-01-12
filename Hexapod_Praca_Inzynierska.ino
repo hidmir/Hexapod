@@ -231,52 +231,62 @@ private:
     {
     case SET_HOME_POSITION:
     {
-      setTargetAngles(30, 25, 90);
+      setTargetAngles(30, 25, 90, true);
     }
     break;
     case SET_DEFAULT_POSITION:
     {
-      setTargetAngles(120, 120, 90);
+      setTargetAngles(120, 120, 90, true);
     }
     break;
     case SET_NEUTRAL_POSITION:
     {
-      setTargetAngles(90, 90, 90);
+      setTargetAngles(90, 90, 90, true);
     }
     break;
     case RISE_LEG:
     {
-      setTargetAngles(50, 50, NULL_VALUE);
+      setTargetAngles(50, 50, NULL_VALUE, true);
     }
     break;
     case LOWER_LEG:
     {
-      setTargetAngles(120, 120, NULL_VALUE);
+      setTargetAngles(120, 120, NULL_VALUE, true);
     }
     break;
     case ROTATE_FORWARD:
     {
-      setTargetAngles(NULL_VALUE, NULL_VALUE, 120);
+      setTargetAngles(NULL_VALUE, NULL_VALUE, 120, true);
     }
     break;
     case ROTATE_BACKWARD:
     {
-      setTargetAngles(NULL_VALUE, NULL_VALUE, 60);
+      setTargetAngles(NULL_VALUE, NULL_VALUE, 60, true);
+    }
+    break;
+    case ROTATE_TO_RIGHT:
+    {
+      setTargetAngles(NULL_VALUE, NULL_VALUE, 120, false);
+    }
+    break;
+    case ROTATE_TO_LEFT:
+    {
+      setTargetAngles(NULL_VALUE, NULL_VALUE, 60, false);
     }
     break;
     default:
     {
-      setTargetAngles(90, 90, 90);
+      setTargetAngles(90, 90, 90, true);
     }
     break;
     }
   }
 
-  void setTargetAngles(int8_t lowerPartTargetAngle, int8_t upperPartTargetAngle, int8_t connectorPartTargetAngle)
+  void setTargetAngles(int8_t lowerPartTargetAngle, int8_t upperPartTargetAngle, int8_t connectorPartTargetAngle, bool reverseAnglesForOtherSideOfRobot)
   {
     for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
     {
-      if (legsCollection[legIndex].side == RIGHT)
+      if (reverseAnglesForOtherSideOfRobot == false || legsCollection[legIndex].side == RIGHT)
       {
         legsCollection[legIndex].partsCollection[0].targetAngle = lowerPartTargetAngle != NULL_VALUE ? lowerPartTargetAngle : legsCollection[legIndex].partsCollection[0].currentAngle;
         legsCollection[legIndex].partsCollection[1].targetAngle = upperPartTargetAngle != NULL_VALUE ? upperPartTargetAngle : legsCollection[legIndex].partsCollection[1].currentAngle;
