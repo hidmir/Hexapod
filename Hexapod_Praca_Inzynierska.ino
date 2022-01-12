@@ -61,7 +61,9 @@ enum MovementType
   RISE_LEG,
   LOWER_LEG,
   ROTATE_FORWARD,
-  ROTATE_BACKWARD
+  ROTATE_BACKWARD,
+  ROTATE_TO_RIGHT,
+  ROTATE_TO_LEFT
 };
 
 class Part
@@ -172,15 +174,23 @@ public:
   {
     setDefaultPosition();
     setTargetLegs(true, false, true, false, true, false);
-    setupTargetAngles(RISE_LEG);
-    rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
-    saveCurrentPosition();
-    setupTargetAngles(ROTATE_FORWARD);
-    rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
-    saveCurrentPosition();
-    setupTargetAngles(LOWER_LEG);
-    rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
-    saveCurrentPosition();
+    move(RISE_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
+    move(ROTATE_FORWARD, DEFAULT_VALUE, DEFAULT_VALUE);
+    move(LOWER_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
+  }
+
+  void rotateToRight()
+  {
+    setTargetLegs(true, false, true, false, true, false);
+    move(RISE_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
+    move(ROTATE_TO_RIGHT, DEFAULT_VALUE, DEFAULT_VALUE);
+    move(LOWER_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
+    setTargetLegs(false, true, false, true, false, true);
+    move(RISE_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
+    move(ROTATE_TO_RIGHT, DEFAULT_VALUE, DEFAULT_VALUE);
+    move(LOWER_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
+    setTargetLegs(true, true, true, true, true, true);
+    move(SET_DEFAULT_POSITION, DEFAULT_VALUE, DEFAULT_VALUE);
   }
 
   void setNeutralPosition()
@@ -208,7 +218,6 @@ public:
     setupTargetAngles(SET_HOME_POSITION);
     setTargetLegs(true, true, true, true, true, true);
     rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
-    saveCurrentPosition();
   }
 
   void setDefaultPosition()
@@ -216,7 +225,6 @@ public:
     setupTargetAngles(SET_DEFAULT_POSITION);
     setTargetLegs(true, true, true, true, true, true);
     rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
-    saveCurrentPosition();
   }
 
 private:
@@ -224,6 +232,13 @@ private:
   bool targetLegsCollection[6] = {true, true, true, true, true, true};
   uint8_t defaultNumberOfIterations;
   uint16_t defaultDelayTime;
+
+  void move(MovementType movementType, int16_t numberOfIterations, int16_t delayTime)
+  {
+    setupTargetAngles(movementType);
+    rotateLegsAsynchronously(numberOfIterations, delayTime);
+    saveCurrentPosition();
+  }
 
   void setupTargetAngles(MovementType movementType)
   {
@@ -329,21 +344,23 @@ private:
         {
           continue;
         }
+
         leg = legsCollection[legIndex];
+
         for (uint8_t partIndex = 0; partIndex < 3; partIndex++)
         {
           part = leg.partsCollection[partIndex];
           partTargetAngle = (int16_t)part.targetAngle;
           partCurrentAngle = (int16_t)part.currentAngle;
+
           if (partTargetAngle == partCurrentAngle)
           {
             continue;
           }
+
           targetAngle = partCurrentAngle + (((((partTargetAngle - partCurrentAngle) * 100) / numberOfIterations) * iteration) / 100);
           targetAngle = (uint8_t)targetAngle;
-          //Serial.println(targetAngle);
           rotate(part.driverNumber, part.partNumber, targetAngle);
-          //rotateUsingMicroseconds(part.driverNumber, part.partNumber, targetAngle);
           delay(delayTime);
         }
       }
@@ -354,6 +371,11 @@ private:
   {
     for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
     {
+      if (targetLegsCollection[legIndex] == false)
+      {
+        continue;
+      }
+
       for (uint8_t partIndex = 0; partIndex < 3; partIndex++)
       {
         legsCollection[legIndex].partsCollection[partIndex].currentAngle = legsCollection[legIndex].partsCollection[partIndex].targetAngle;
@@ -382,7 +404,12 @@ void setup()
   secondPWMDriver.setPWMFreq(SERVO_FREQ);
 
   hexapod.setNeutralPosition();
+
   hexapod.setHomePosition();
+  //hexapod.setDefaultPosition();
+  //hexapod.rotateToRight();
+  //hexapod.rotateToRight();
+  //hexapod.rotateToRight();
   //hexapod.moveForward();
   //hexapod.setDefaultPosition();
   //hexapod.setHomePosition();
