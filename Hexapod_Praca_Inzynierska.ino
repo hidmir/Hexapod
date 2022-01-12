@@ -170,6 +170,17 @@ public:
 
   void moveForward()
   {
+    setDefaultPosition();
+    setTargetLegs(true, false, true, false, true, false);
+    setupTargetAngles(RISE_LEG);
+    rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
+    saveCurrentPosition();
+    setupTargetAngles(ROTATE_FORWARD);
+    rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
+    saveCurrentPosition();
+    setupTargetAngles(LOWER_LEG);
+    rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
+    saveCurrentPosition();
   }
 
   void setNeutralPosition()
@@ -195,6 +206,7 @@ public:
   void setHomePosition()
   {
     setupTargetAngles(SET_HOME_POSITION);
+    setTargetLegs(true, true, true, true, true, true);
     rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
     saveCurrentPosition();
   }
@@ -202,12 +214,14 @@ public:
   void setDefaultPosition()
   {
     setupTargetAngles(SET_DEFAULT_POSITION);
+    setTargetLegs(true, true, true, true, true, true);
     rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
     saveCurrentPosition();
   }
 
 private:
   Leg legsCollection[6];
+  bool targetLegsCollection[6] = {true, true, true, true, true, true};
   uint8_t defaultNumberOfIterations;
   uint16_t defaultDelayTime;
 
@@ -217,7 +231,7 @@ private:
     {
     case SET_HOME_POSITION:
     {
-      setTargetAngles(30, 0, 90);
+      setTargetAngles(30, 25, 90);
     }
     break;
     case SET_DEFAULT_POSITION:
@@ -237,7 +251,7 @@ private:
     break;
     case LOWER_LEG:
     {
-      setTargetAngles(100, 100, NULL_VALUE);
+      setTargetAngles(120, 120, NULL_VALUE);
     }
     break;
     case ROTATE_FORWARD:
@@ -258,7 +272,7 @@ private:
     }
   }
 
-  void setTargetAngles(uint8_t lowerPartTargetAngle, uint8_t upperPartTargetAngle, uint8_t connectorPartTargetAngle)
+  void setTargetAngles(int8_t lowerPartTargetAngle, int8_t upperPartTargetAngle, int8_t connectorPartTargetAngle)
   {
     for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
     {
@@ -277,6 +291,16 @@ private:
     }
   }
 
+  void setTargetLegs(bool useFirstRightLeg, bool useSecondRightLeg, bool useThirdRightLeg, bool useFirstLeftLeg, bool useSecondLeftLeg, bool useThirdLeftLeg)
+  {
+    targetLegsCollection[0] = useFirstRightLeg;
+    targetLegsCollection[1] = useSecondRightLeg;
+    targetLegsCollection[2] = useThirdRightLeg;
+    targetLegsCollection[3] = useFirstLeftLeg;
+    targetLegsCollection[4] = useSecondLeftLeg;
+    targetLegsCollection[5] = useThirdLeftLeg;
+  }
+
   void rotateLegsAsynchronously(int16_t numberOfIterations, int16_t delayTime)
   {
     uint8_t targetAngle;
@@ -291,8 +315,12 @@ private:
     {
       for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
       {
+        if (targetLegsCollection[legIndex] == false)
+        {
+          continue;
+        }
         leg = legsCollection[legIndex];
-        for (uint8_t partIndex = 0; partIndex < 2; partIndex++)
+        for (uint8_t partIndex = 0; partIndex < 3; partIndex++)
         {
           part = leg.partsCollection[partIndex];
           partTargetAngle = (int16_t)part.targetAngle;
@@ -324,13 +352,13 @@ private:
   }
 };
 
-Leg firstLeg(RIGHT, 0, 1, 15);
-Leg secondLeg(RIGHT, 2, 3, 10);
-Leg thirdLeg(RIGHT, 4, 5, 2);
+Leg firstLeg(RIGHT, 1, 2, 14);
+Leg secondLeg(RIGHT, 3, 4, 10);
+Leg thirdLeg(RIGHT, 5, 6, 2);
 Leg fourthLeg(LEFT, 7, 8, 12);
 Leg fifthLeg(LEFT, 10, 11, 7);
 Leg sixthLeg(LEFT, 13, 15, 4);
-HexapodSettings hexapodSettings(30, 20); //iterations delaytime
+HexapodSettings hexapodSettings(40, 10); //iterations delaytime
 Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
 
 void setup()
@@ -345,7 +373,9 @@ void setup()
 
   hexapod.setNeutralPosition();
   hexapod.setHomePosition();
+  //hexapod.moveForward();
   //hexapod.setDefaultPosition();
+  //hexapod.setHomePosition();
 
   delay(10);
 }
