@@ -1,16 +1,34 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
+#include <IRremote.h>
 
+int RECV_PIN = 2;
+IRrecv irrecv(RECV_PIN);
+decode_results results;
 Adafruit_PWMServoDriver firstPWMDriver = Adafruit_PWMServoDriver(0x40);
 Adafruit_PWMServoDriver secondPWMDriver = Adafruit_PWMServoDriver(0x41);
 
-#define SERVOMIN 100 //150
-#define SERVOMAX 485 //600
+#define SERVOMIN 100 // 150
+#define SERVOMAX 485 // 600
 #define MICROSECONDSMIN 700
 #define MICROSECONDSMAX 2100
 #define SERVO_FREQ 50
 #define NULL_VALUE -1
 #define DEFAULT_VALUE -2
+#define ON_OFF_SIGNAL -522155913
+#define TETRAPOD_GAIT_SIGNAL -522182433
+#define WAVE_GAIT_SIGNAL -522149793
+#define ROTATE_TO_RIGHT_SIGNAL -522166113
+#define ROTATE_TO_LEFT_SIGNAL -522186513
+
+//Codes:
+/*
+ * ON/OFF - Received signal: -522155913, hex: E0E08877
+ * TETRAPOD GAIT - Received signal: -522182433, hex: E0E020DF
+ * WAVE GAIT - Received signal: -522149793, hex: E0E0A05F
+ * ROTATE TO RIGHT - Received signal: -522166113, hex: E0E0609F
+ * ROTATE TO LEFT - Received signal: -522186513, hex: E0E010EF
+ */
 
 void rotate(uint8_t servoDriverNumber, uint8_t servoNumber, uint16_t angleInDegrees)
 {
@@ -46,6 +64,13 @@ enum Side
   LEFT
 };
 
+enum LegType
+{
+  FRONT,
+  MIDDLE,
+  BACK
+};
+
 enum PartType
 {
   LOWER,
@@ -66,6 +91,13 @@ enum MovementType
   ROTATE_TO_LEFT
 };
 
+enum GaitType
+{
+  WAVE,
+  TETRAPOD,
+  TRIPOD
+};
+
 class Part
 {
 public:
@@ -80,6 +112,8 @@ public:
   {
     driverNumber = partType == CONNECTOR ? 2 : 1;
     partNumber = numberOfPart;
+    currentAngle = 0;
+    targetAngle = 0;
   }
 };
 
@@ -88,15 +122,30 @@ class Leg
 public:
   Part partsCollection[3];
   Side side;
+  LegType legType;
+  uint8_t movementState;
+  int16_t currentIteration;
+  int16_t movementIterations;
+  int16_t iterationsMultiplier;
+  int16_t numberOfAllIterations;
+  bool enabled;
 
   Leg() {}
 
-  Leg(Side robotSide, uint8_t lowerPartServoNumber, uint8_t upperPartServoNumber, uint8_t legsConnectorServoNumber)
+  Leg(Side robotSide, uint8_t lowerPartServoNumber, uint8_t upperPartServoNumber, uint8_t legsConnectorServoNumber, LegType currentLegType, int16_t numberOfMovementIterations)
   {
     side = robotSide;
+    legType = currentLegType;
     partsCollection[0] = Part(LOWER, lowerPartServoNumber);
     partsCollection[1] = Part(UPPER, upperPartServoNumber);
     partsCollection[2] = Part(CONNECTOR, legsConnectorServoNumber);
+    movementState = 0;
+    movementIterations = numberOfMovementIterations;
+    // currentIteration = 1;
+    currentIteration = movementIterations;
+    iterationsMultiplier = 1;
+    enabled = false;
+    numberOfAllIterations = 0;
   }
 
   void setNeutralPosition()
@@ -107,6 +156,33 @@ public:
       partsCollection[partIndex].currentAngle = 90;
       delay(400);
     }
+  }
+
+  void setTargetAngles(int16_t tibiaTargetAngle, int16_t femurTargetAngle, int16_t coxaTargetAngle, bool reverseAngles)
+  {
+    partsCollection[0].targetAngle = (reverseAngles == false || side == RIGHT) ? tibiaTargetAngle : (90 + (90 - tibiaTargetAngle));
+    partsCollection[1].targetAngle = (reverseAngles == false || side == RIGHT) ? femurTargetAngle : (90 + (90 - femurTargetAngle));
+    partsCollection[2].targetAngle = (reverseAngles == false || side == RIGHT) ? coxaTargetAngle : (90 + (90 - coxaTargetAngle));
+  }
+
+  bool isLegInTargetPosition()
+  {
+    return currentIteration >= movementIterations;
+    /*for (uint8_t partIndex = 0; partIndex < 3; partIndex++)
+    {
+      if(partsCollection[partIndex].currentAngle != partsCollection[partIndex].targetAngle)
+      {
+        return false;
+      }
+    }
+    return true;*/
+  }
+
+  void saveCurrentPosition()
+  {
+    partsCollection[0].currentAngle = partsCollection[0].targetAngle;
+    partsCollection[1].currentAngle = partsCollection[1].targetAngle;
+    partsCollection[2].currentAngle = partsCollection[2].targetAngle;
   }
 
 private:
@@ -132,13 +208,6 @@ private:
         delay(10);
       }
     }
-  }
-
-  void saveCurrentPosition()
-  {
-    partsCollection[0].currentAngle = partsCollection[0].targetAngle;
-    partsCollection[1].currentAngle = partsCollection[1].targetAngle;
-    partsCollection[2].currentAngle = partsCollection[2].targetAngle;
   }
 };
 
@@ -170,13 +239,276 @@ public:
     defaultDelayTime = hexapodSettings.delayTime;
   }
 
-  void moveForward()
+  void moveForward(GaitType gaitType)
   {
-    setDefaultPosition();
-    setTargetLegs(true, false, true, false, true, false);
-    move(RISE_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
-    move(ROTATE_FORWARD, DEFAULT_VALUE, DEFAULT_VALUE);
-    move(LOWER_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
+    Leg leg;
+    Part part;
+    int16_t swipeMultiplier;
+    int16_t moveMultiplier;
+    int16_t moveOrder;
+
+    switch (gaitType)
+    {
+    case WAVE:
+    {
+      swipeMultiplier = 10;
+    }
+    break;
+    case TETRAPOD:
+    {
+      swipeMultiplier = 10;
+    }
+    break;
+    case TRIPOD:
+    {
+      swipeMultiplier = 10;
+    }
+    break;
+    default:
+    {
+      swipeMultiplier = 10;
+    }
+    break;
+    }
+
+    switch (gaitType)
+    {
+    case WAVE:
+    {
+      moveMultiplier = 1;
+    }
+    break;
+    case TETRAPOD:
+    {
+      moveMultiplier = 2;
+    }
+    break;
+    case TRIPOD:
+    {
+      moveMultiplier = 1;
+    }
+    break;
+    default:
+    {
+      moveMultiplier = 1;
+    }
+    break;
+    }
+
+    for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
+    {
+      leg = legsCollection[legIndex];
+      // Serial.println(leg.isLegInTargetPosition() == true);
+      if (leg.isLegInTargetPosition() == true)
+      {
+        legsCollection[legIndex].currentIteration = 1;
+
+        legsCollection[legIndex].saveCurrentPosition();
+
+        switch (leg.movementState)
+        {
+        case 0:
+        {
+          switch (leg.legType)
+          {
+          case FRONT:
+          {
+            legsCollection[legIndex].setTargetAngles(59, 31, 66, leg.side != RIGHT);
+          }
+          break;
+          case MIDDLE:
+          {
+            legsCollection[legIndex].setTargetAngles(41, 21, 90, leg.side != RIGHT);
+          }
+          break;
+          case BACK:
+          {
+            legsCollection[legIndex].setTargetAngles(59, 31, 115, leg.side != RIGHT);
+          }
+          break;
+          }
+          legsCollection[legIndex].movementState = 1;
+          legsCollection[legIndex].iterationsMultiplier = swipeMultiplier;
+        }
+        break;
+        case 1:
+        {
+          switch (leg.legType)
+          {
+          case FRONT:
+          {
+            legsCollection[legIndex].setTargetAngles(103, 84, 75, leg.side != RIGHT);
+          }
+          break;
+          case MIDDLE:
+          {
+            legsCollection[legIndex].setTargetAngles(77, 80, 106, leg.side != RIGHT);
+          }
+          break;
+          case BACK:
+          {
+            legsCollection[legIndex].setTargetAngles(80, 80, 127, leg.side != RIGHT);
+          }
+          break;
+          }
+          legsCollection[legIndex].movementState = 2;
+          legsCollection[legIndex].iterationsMultiplier = swipeMultiplier;
+        }
+        break;
+        case 2:
+        {
+          switch (leg.legType)
+          {
+          case FRONT:
+          {
+            legsCollection[legIndex].setTargetAngles(80, 80, 53, leg.side != RIGHT);
+          }
+          break;
+          case MIDDLE:
+          {
+            legsCollection[legIndex].setTargetAngles(77, 80, 74, leg.side != RIGHT);
+          }
+          break;
+          case BACK:
+          {
+            legsCollection[legIndex].setTargetAngles(103, 84, 105, leg.side != RIGHT);
+          }
+          break;
+          }
+          legsCollection[legIndex].movementState = 0;
+          legsCollection[legIndex].iterationsMultiplier = moveMultiplier;
+        }
+        break;
+        }
+      }
+    }
+    // r3 l2//r2 l1//r1 l3//
+    switch (gaitType)
+    {
+    case WAVE:
+    {
+      legsCollection[0].enabled = true;
+    }
+    break;
+    case TETRAPOD:
+    {
+      legsCollection[0].enabled = true;
+      legsCollection[5].enabled = true;
+    }
+    break;
+    case TRIPOD:
+    {
+      legsCollection[0].enabled = true;
+    }
+    break;
+    default:
+    {
+      legsCollection[0].enabled = true;
+    }
+    break;
+    }
+
+    for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
+    {
+      cachedLeg = legsCollection[legIndex];
+
+      if (cachedLeg.enabled == false)
+      {
+        continue;
+      }
+
+      for (uint8_t partIndex = 0; partIndex < 3; partIndex++)
+      {
+        cachedPart = cachedLeg.partsCollection[partIndex];
+        cachedPartTargetAngle = (int16_t)cachedPart.targetAngle;
+        cachedPartCurrentAngle = (int16_t)cachedPart.currentAngle;
+
+        if (cachedPartTargetAngle == cachedPartCurrentAngle)
+        {
+          continue;
+        }
+
+        if (legIndex == 0 && partIndex == 0)
+        {
+          int16_t aaa = cachedPartTargetAngle;
+          int16_t aa = cachedPartCurrentAngle + (((((cachedPartTargetAngle - cachedPartCurrentAngle) * 100) / cachedLeg.movementIterations) * cachedLeg.currentIteration) / 100);
+          // Serial.println(aaa);
+          // Serial.println(aa);
+        }
+
+        cachedPartTargetAngle = cachedPartCurrentAngle + (((((cachedPartTargetAngle - cachedPartCurrentAngle) * 100) / cachedLeg.movementIterations) * cachedLeg.currentIteration) / 100);
+        cachedPartTargetAngle = (uint8_t)cachedPartTargetAngle;
+        rotate(cachedPart.driverNumber, cachedPart.partNumber, cachedPartTargetAngle);
+
+        if (legIndex == 0 && partIndex == 0)
+        {
+          // Serial.println(cachedPartTargetAngle);
+          // Serial.println("--------------------");
+        }
+
+        // legsCollection[legIndex].partsCollection[partIndex].currentAngle = cachedPartTargetAngle;
+
+        delay(5);
+      }
+
+      if (cachedLeg.currentIteration < cachedLeg.movementIterations)
+      {
+        legsCollection[legIndex].currentIteration = legsCollection[legIndex].currentIteration + (1 * legsCollection[legIndex].iterationsMultiplier);
+        legsCollection[legIndex].numberOfAllIterations++;
+        // legsCollection[legIndex].numberOfAllIterations = legsCollection[legIndex].numberOfAllIterations + (1 * legsCollection[legIndex].iterationsMultiplier);
+      }
+      // Serial.println(legsCollection[legIndex].currentIteration);
+    }
+
+    // r1 l3//r3 l2//r2 l1//
+
+    moveOrder = (gaitType == TRIPOD) ? 1 : (gaitType == TETRAPOD) ? 4
+                                       : (gaitType == WAVE)       ? 1
+                                                                  : 1;
+
+    if (legsCollection[1].enabled == false && legsCollection[0].numberOfAllIterations >= (((legsCollection[0].movementIterations / moveMultiplier) + ((legsCollection[0].movementIterations * 2) / swipeMultiplier)) / 6 * moveOrder))
+    {
+      legsCollection[1].enabled = true;
+    }
+
+    moveOrder = (gaitType == TRIPOD) ? 1 : (gaitType == TETRAPOD) ? 2
+                                       : (gaitType == WAVE)       ? 2
+                                                                  : 2;
+
+    if (legsCollection[2].enabled == false && legsCollection[0].numberOfAllIterations >= ((((legsCollection[0].movementIterations / moveMultiplier) + ((legsCollection[0].movementIterations * 2) / swipeMultiplier)) / 6) * moveOrder))
+    {
+      legsCollection[2].enabled = true;
+    }
+
+    moveOrder = (gaitType == TRIPOD) ? 1 : (gaitType == TETRAPOD) ? 4
+                                       : (gaitType == WAVE)       ? 3
+                                                                  : 3;
+
+    if (legsCollection[3].enabled == false && legsCollection[0].numberOfAllIterations >= ((((legsCollection[0].movementIterations / moveMultiplier) + ((legsCollection[0].movementIterations * 2) / swipeMultiplier)) / 6) * moveOrder))
+    {
+      legsCollection[3].enabled = true;
+    }
+
+    moveOrder = (gaitType == TRIPOD) ? 1 : (gaitType == TETRAPOD) ? 2
+                                       : (gaitType == WAVE)       ? 4
+                                                                  : 4;
+
+    if (legsCollection[4].enabled == false && legsCollection[0].numberOfAllIterations >= ((((legsCollection[0].movementIterations / moveMultiplier) + ((legsCollection[0].movementIterations * 2) / swipeMultiplier)) / 6) * moveOrder))
+    {
+      legsCollection[4].enabled = true;
+    }
+
+    moveOrder = (gaitType == TRIPOD) ? 1 : (gaitType == TETRAPOD) ? 1
+                                       : (gaitType == WAVE)       ? 5
+                                                                  : 5;
+
+    if (legsCollection[5].enabled == false && legsCollection[0].numberOfAllIterations >= ((((legsCollection[0].movementIterations / moveMultiplier) + ((legsCollection[0].movementIterations * 2) / swipeMultiplier)) / 6) * moveOrder))
+    {
+      legsCollection[5].enabled = true;
+    }
+
+    // setTargetLegs(true, true, true, true, true, true);
+    // saveCurrentPosition();
   }
 
   void rotateToRight()
@@ -190,7 +522,57 @@ public:
     move(ROTATE_TO_RIGHT, DEFAULT_VALUE, DEFAULT_VALUE);
     move(LOWER_LEG, DEFAULT_VALUE, DEFAULT_VALUE);
     setTargetLegs(true, true, true, true, true, true);
-    move(SET_DEFAULT_POSITION, DEFAULT_VALUE, DEFAULT_VALUE);
+    move(ROTATE_TO_LEFT, DEFAULT_VALUE, DEFAULT_VALUE);
+  }
+
+  void testMove1()
+  {
+    setTargetLegs(true, false, false, false, false, false);
+    setTargetAngles(103, 84, 75, false);
+
+    setTargetLegs(false, true, false, false, false, false);
+    setTargetAngles(77, 80, 106, false);
+
+    setTargetLegs(false, false, true, false, false, false);
+    setTargetAngles(80, 80, 127, false);
+
+    setTargetLegs(false, false, false, true, false, false);
+    setTargetAngles(103, 84, 75, true);
+
+    setTargetLegs(false, false, false, false, true, false);
+    setTargetAngles(77, 80, 106, true);
+
+    setTargetLegs(false, false, false, false, false, true);
+    setTargetAngles(80, 80, 127, true);
+
+    setTargetLegs(true, true, true, true, true, true);
+    rotateLegsAsynchronously(60, DEFAULT_VALUE);
+    saveCurrentPosition();
+  }
+
+  void testMove2()
+  {
+    setTargetLegs(true, false, false, false, false, false);
+    setTargetAngles(80, 80, 53, false);
+
+    setTargetLegs(false, true, false, false, false, false);
+    setTargetAngles(77, 80, 74, false);
+
+    setTargetLegs(false, false, true, false, false, false);
+    setTargetAngles(103, 84, 105, false);
+
+    setTargetLegs(false, false, false, true, false, false);
+    setTargetAngles(80, 80, 53, true);
+
+    setTargetLegs(false, false, false, false, true, false);
+    setTargetAngles(77, 80, 74, true);
+
+    setTargetLegs(false, false, false, false, false, true);
+    setTargetAngles(103, 84, 105, true);
+
+    setTargetLegs(true, true, true, true, true, true);
+    rotateLegsAsynchronously(60, DEFAULT_VALUE);
+    saveCurrentPosition();
   }
 
   void setNeutralPosition()
@@ -218,6 +600,7 @@ public:
     setupTargetAngles(SET_HOME_POSITION);
     setTargetLegs(true, true, true, true, true, true);
     rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
+    saveCurrentPosition();
   }
 
   void setDefaultPosition()
@@ -225,6 +608,7 @@ public:
     setupTargetAngles(SET_DEFAULT_POSITION);
     setTargetLegs(true, true, true, true, true, true);
     rotateLegsAsynchronously(DEFAULT_VALUE, DEFAULT_VALUE);
+    saveCurrentPosition();
   }
 
 private:
@@ -232,6 +616,12 @@ private:
   bool targetLegsCollection[6] = {true, true, true, true, true, true};
   uint8_t defaultNumberOfIterations;
   uint16_t defaultDelayTime;
+
+  uint8_t cachedTargetAngle;
+  int16_t cachedPartTargetAngle;
+  int16_t cachedPartCurrentAngle;
+  Leg cachedLeg;
+  Part cachedPart;
 
   void move(MovementType movementType, int16_t numberOfIterations, int16_t delayTime)
   {
@@ -281,12 +671,12 @@ private:
     break;
     case ROTATE_TO_RIGHT:
     {
-      setTargetAngles(NULL_VALUE, NULL_VALUE, 120, false);
+      setTargetAngles(NULL_VALUE, NULL_VALUE, 110, false);
     }
     break;
     case ROTATE_TO_LEFT:
     {
-      setTargetAngles(NULL_VALUE, NULL_VALUE, 60, false);
+      setTargetAngles(NULL_VALUE, NULL_VALUE, 70, false);
     }
     break;
     default:
@@ -297,10 +687,15 @@ private:
     }
   }
 
-  void setTargetAngles(int8_t lowerPartTargetAngle, int8_t upperPartTargetAngle, int8_t connectorPartTargetAngle, bool reverseAnglesForOtherSideOfRobot)
+  void setTargetAngles(int16_t lowerPartTargetAngle, int16_t upperPartTargetAngle, int16_t connectorPartTargetAngle, bool reverseAnglesForOtherSideOfRobot)
   {
     for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
     {
+      if (targetLegsCollection[legIndex] == false)
+      {
+        continue;
+      }
+
       if (reverseAnglesForOtherSideOfRobot == false || legsCollection[legIndex].side == RIGHT)
       {
         legsCollection[legIndex].partsCollection[0].targetAngle = lowerPartTargetAngle != NULL_VALUE ? lowerPartTargetAngle : legsCollection[legIndex].partsCollection[0].currentAngle;
@@ -384,18 +779,24 @@ private:
   }
 };
 
-Leg firstLeg(RIGHT, 1, 2, 14);
-Leg secondLeg(RIGHT, 3, 4, 10);
-Leg thirdLeg(RIGHT, 5, 6, 2);
-Leg fourthLeg(LEFT, 7, 8, 12);
-Leg fifthLeg(LEFT, 10, 11, 7);
-Leg sixthLeg(LEFT, 13, 15, 4);
-HexapodSettings hexapodSettings(40, 10); //iterations delaytime
+Leg firstLeg(RIGHT, 1, 2, 14, FRONT, 90);
+Leg secondLeg(RIGHT, 3, 4, 10, MIDDLE, 90);
+Leg thirdLeg(RIGHT, 5, 6, 2, BACK, 90);
+Leg fourthLeg(LEFT, 7, 8, 12, FRONT, 90);
+Leg fifthLeg(LEFT, 10, 11, 7, MIDDLE, 90);
+Leg sixthLeg(LEFT, 13, 15, 4, BACK, 90);
+HexapodSettings hexapodSettings(40, 10); // iterations delaytime
 Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
+bool isHexapodReadyToMove;
+bool isTetrapodGateEnabled;
+bool isWaveGateEnabled;
+bool isTurningRightEnabled;
+bool isTurningLeftEnabled;
 
 void setup()
 {
   Serial.begin(9600);
+  irrecv.enableIRIn();
   firstPWMDriver.begin();
   secondPWMDriver.begin();
   firstPWMDriver.setOscillatorFrequency(27000000);
@@ -406,20 +807,97 @@ void setup()
   hexapod.setNeutralPosition();
 
   hexapod.setHomePosition();
-  //hexapod.setDefaultPosition();
-  //hexapod.rotateToRight();
-  //hexapod.rotateToRight();
-  //hexapod.rotateToRight();
-  //hexapod.moveForward();
-  //hexapod.setDefaultPosition();
-  //hexapod.setHomePosition();
 
+  // hexapod.setDefaultPosition();
+  // delay(7000);
+  // hexapod.testMove1();
+  // hexapod.testMove2();
+  // hexapod.testMove1();
+  // hexapod.testMove2();
+  // hexapod.testMove1();
+  // hexapod.testMove2();
+  // hexapod.testMove1();
+  // hexapod.testMove2();
+
+  // hexapod.setDefaultPosition();
+  // hexapod.rotateToRight();
+  // hexapod.rotateToRight();
+  // hexapod.rotateToRight();
+  // hexapod.setDefaultPosition();
+
+  // hexapod.moveForward();
+  // hexapod.setHomePosition();
+
+  pinMode(3,OUTPUT);
+  digitalWrite(3,HIGH);
+  
   delay(10);
 }
 
 void loop()
 {
-  //hexapod.moveForward();
-  //hexapod.setHomePosition();
-  //hexapod.setDefaultPosition();
+  // hexapod.moveForward(WAVE);
+  // hexapod.moveForward(TETRAPOD);
+  // hexapod.rotateToRight();
+  if (irrecv.decode(&results)) 
+  {
+   logReceivedCode(results.value);
+   respondToSignal();
+   logHexapodState();
+   irrecv.resume(); // Receive the next value
+  }
+  delay(100);
+}
+
+void respondToSignal()
+{
+   switch(results.value)
+  {
+    case ON_OFF_SIGNAL:
+    {
+      isHexapodReadyToMove = !isHexapodReadyToMove;
+    }
+    break;
+    case TETRAPOD_GAIT_SIGNAL:
+    {
+      isTetrapodGateEnabled = !isTetrapodGateEnabled;
+    }
+    break;
+    case WAVE_GAIT_SIGNAL:
+    {
+      isWaveGateEnabled = !isWaveGateEnabled;
+    }
+    break;
+    case ROTATE_TO_RIGHT_SIGNAL:
+    {
+      isTurningRightEnabled = !isTurningRightEnabled;
+    }
+    break;
+    case ROTATE_TO_LEFT_SIGNAL:
+    {
+      isTurningLeftEnabled = !isTurningLeftEnabled;
+    }
+    break;
+  }
+}
+ 
+void logReceivedCode(long irCode) 
+{
+  Serial.print("Received signal: ");
+  Serial.print(irCode);
+  Serial.print(", hex: ");
+  Serial.println(irCode, HEX);
+}
+
+void logHexapodState()
+{
+   Serial.print(isHexapodReadyToMove);
+   Serial.print("");
+   Serial.print(isTetrapodGateEnabled);
+   Serial.print("");
+   Serial.print(isWaveGateEnabled);
+   Serial.print("");
+   Serial.print(isTurningRightEnabled);
+   Serial.print("");
+   Serial.println(isTurningLeftEnabled);
 }
