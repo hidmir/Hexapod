@@ -804,9 +804,9 @@ void setup()
   firstPWMDriver.setPWMFreq(SERVO_FREQ);
   secondPWMDriver.setPWMFreq(SERVO_FREQ);
 
-  hexapod.setNeutralPosition();
+  //hexapod.setNeutralPosition();
 
-  hexapod.setHomePosition();
+  //hexapod.setHomePosition();
 
   // hexapod.setDefaultPosition();
   // delay(7000);
@@ -860,24 +860,37 @@ void respondToSignal()
     break;
     case TETRAPOD_GAIT_SIGNAL:
     {
-      isTetrapodGateEnabled = !isTetrapodGateEnabled;
+      toggleMovementState(isTetrapodGateEnabled);
     }
     break;
     case WAVE_GAIT_SIGNAL:
     {
-      isWaveGateEnabled = !isWaveGateEnabled;
+      toggleMovementState(isWaveGateEnabled);
     }
     break;
     case ROTATE_TO_RIGHT_SIGNAL:
     {
-      isTurningRightEnabled = !isTurningRightEnabled;
+      toggleMovementState(isTurningRightEnabled);
     }
     break;
     case ROTATE_TO_LEFT_SIGNAL:
     {
-      isTurningLeftEnabled = !isTurningLeftEnabled;
+      toggleMovementState(isTurningLeftEnabled);
     }
     break;
+  }
+}
+
+void toggleMovementState(bool &movementState)
+{
+  movementState = !movementState;
+
+  if(movementState == true)
+  {
+    isTetrapodGateEnabled = &movementState == &isTetrapodGateEnabled ? isTetrapodGateEnabled : false;
+    isWaveGateEnabled = &movementState == &isWaveGateEnabled ? isWaveGateEnabled : false;
+    isTurningRightEnabled = &movementState == &isTurningRightEnabled ? isTurningRightEnabled : false;
+    isTurningLeftEnabled = &movementState == &isTurningLeftEnabled ? isTurningLeftEnabled : false;
   }
 }
  
