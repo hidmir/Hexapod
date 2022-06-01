@@ -8,8 +8,8 @@ decode_results results;
 Adafruit_PWMServoDriver firstPWMDriver = Adafruit_PWMServoDriver(0x40);
 Adafruit_PWMServoDriver secondPWMDriver = Adafruit_PWMServoDriver(0x41);
 
-#define SERVOMIN 100 // 150
-#define SERVOMAX 485 // 600
+#define SERVOMIN 100
+#define SERVOMAX 485
 #define MICROSECONDSMIN 700
 #define MICROSECONDSMAX 2100
 #define SERVO_FREQ 50
@@ -142,7 +142,6 @@ public:
     partsCollection[2] = Part(CONNECTOR, legsConnectorServoNumber);
     movementState = 0;
     movementIterations = numberOfMovementIterations;
-    // currentIteration = 1;
     currentIteration = movementIterations;
     iterationsMultiplier = 1;
     enabled = false;
@@ -169,14 +168,6 @@ public:
   bool isLegInTargetPosition()
   {
     return currentIteration >= movementIterations;
-    /*for (uint8_t partIndex = 0; partIndex < 3; partIndex++)
-    {
-      if(partsCollection[partIndex].currentAngle != partsCollection[partIndex].targetAngle)
-      {
-        return false;
-      }
-    }
-    return true;*/
   }
 
   void saveCurrentPosition()
@@ -302,7 +293,7 @@ public:
     for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
     {
       leg = legsCollection[legIndex];
-      // Serial.println(leg.isLegInTargetPosition() == true);
+      
       if (leg.isLegInTargetPosition() == true)
       {
         legsCollection[legIndex].currentIteration = 1;
@@ -317,22 +308,16 @@ public:
             {
               case FRONT:
               {
-                //legsCollection[legIndex].setTargetAngles(59, 31, 66, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(71, 57, 66, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(63, 55, 70, leg.side != RIGHT);
               }
               break;
               case MIDDLE:
               {
-                //legsCollection[legIndex].setTargetAngles(41, 21, 90, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(55, 54, 90, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(47, 54, 90, leg.side != RIGHT);
               }
               break;
               case BACK:
               { 
-                //legsCollection[legIndex].setTargetAngles(59, 31, 115, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(71, 57, 115, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(63, 55, 110, leg.side != RIGHT);
               }
               break;
@@ -347,22 +332,16 @@ public:
             {
               case FRONT:
               {
-                //legsCollection[legIndex].setTargetAngles(103, 84, 75, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(131, 110, 75, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(121, 107, 79, leg.side != RIGHT);
               }
               break;
               case MIDDLE:
               {
-                //legsCollection[legIndex].setTargetAngles(77, 80, 106, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(102, 104, 106, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(95, 106, 108, leg.side != RIGHT);
               }
               break;
               case BACK:
               {
-                //legsCollection[legIndex].setTargetAngles(80, 80, 127, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(105, 104, 127, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(98, 105, 123, leg.side != RIGHT);
               }
               break;
@@ -377,22 +356,16 @@ public:
             {
               case FRONT:
               {
-                //legsCollection[legIndex].setTargetAngles(80, 80, 53, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(105, 104, 53, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(98, 105, 57, leg.side != RIGHT);
               }
               break;
               case MIDDLE:
               {
-                //legsCollection[legIndex].setTargetAngles(77, 80, 74, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(102, 104, 74, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(95, 106, 72, leg.side != RIGHT);
               }
               break;
               case BACK:
               {
-                //legsCollection[legIndex].setTargetAngles(103, 84, 105, leg.side != RIGHT);
-                //legsCollection[legIndex].setTargetAngles(131, 110, 105, leg.side != RIGHT);
                 legsCollection[legIndex].setTargetAngles(121, 107, 101, leg.side != RIGHT);
               }
               break;
@@ -443,7 +416,6 @@ public:
       {
         cachedPart = cachedLeg.partsCollection[partIndex];
         cachedPartTargetAngle = (int16_t)cachedPart.targetAngle;
-        //cachedPartCurrentAngle = (int16_t)cachedPart.currentAngle;
         cachedPartCurrentAngle = (int16_t)cachedPart.angleAtBeginningOfMove;
 
         if (cachedPartTargetAngle == cachedPartCurrentAngle)
@@ -451,23 +423,9 @@ public:
           continue;
         }
 
-        /*if (legIndex == 0 && partIndex == 0)
-        {
-          int16_t aaa = cachedPartTargetAngle;
-          int16_t aa = cachedPartCurrentAngle + (((((cachedPartTargetAngle - cachedPartCurrentAngle) * 100) / cachedLeg.movementIterations) * cachedLeg.currentIteration) / 100);
-          // Serial.println(aaa);
-          // Serial.println(aa);
-        }*/
-
         cachedPartTargetAngle = cachedPartCurrentAngle + (((((cachedPartTargetAngle - cachedPartCurrentAngle) * 100) / cachedLeg.movementIterations) * cachedLeg.currentIteration) / 100);
         cachedPartTargetAngle = (uint8_t)cachedPartTargetAngle;
         rotate(cachedPart.driverNumber, cachedPart.partNumber, cachedPartTargetAngle);
-
-        /*if (legIndex == 0 && partIndex == 0)
-        {
-          // Serial.println(cachedPartTargetAngle);
-          // Serial.println("--------------------");
-        }*/
 
         legsCollection[legIndex].partsCollection[partIndex].currentAngle = cachedPartTargetAngle;
 
@@ -478,9 +436,7 @@ public:
       {
         legsCollection[legIndex].currentIteration = legsCollection[legIndex].currentIteration + (1 * legsCollection[legIndex].iterationsMultiplier);
         legsCollection[legIndex].numberOfAllIterations++;
-        // legsCollection[legIndex].numberOfAllIterations = legsCollection[legIndex].numberOfAllIterations + (1 * legsCollection[legIndex].iterationsMultiplier);
       }
-      // Serial.println(legsCollection[legIndex].currentIteration);
     }
 
     // r1 l3//r3 l2//r2 l1//
@@ -529,9 +485,6 @@ public:
     {
       legsCollection[5].enabled = true;
     }
-
-    // setTargetLegs(true, true, true, true, true, true);
-    // saveCurrentPosition();
   }
 
   void rotateToRight()
@@ -677,8 +630,6 @@ public:
     resetLegsMovementIterations();
     resetLegsMovementStates();
     resetLegsTargetAngles();
-    //setTargetLegs(true, true, true, true, true, true);
-    //saveCurrentPosition();
   }
 
 private:
@@ -846,7 +797,7 @@ Leg thirdLeg(RIGHT, 5, 6, 2, BACK, 90);
 Leg fourthLeg(LEFT, 7, 8, 12, FRONT, 90);
 Leg fifthLeg(LEFT, 10, 11, 7, MIDDLE, 90);
 Leg sixthLeg(LEFT, 13, 15, 4, BACK, 90);
-HexapodSettings hexapodSettings(40, 10); // iterations delaytime
+HexapodSettings hexapodSettings(40, 10);
 Hexapod hexapod(firstLeg, secondLeg, thirdLeg, fourthLeg, fifthLeg, sixthLeg, hexapodSettings);
 bool isHexapodReadyToMove;
 bool isTetrapodGateEnabled;
@@ -870,17 +821,6 @@ void setup()
   hexapod.setNeutralPosition();
 
   hexapod.setHomePosition();
-
-  //hexapod.setDefaultPosition();
-  // delay(7000);
-  // hexapod.setDefaultPosition();
-  // hexapod.rotateToRight();
-  // hexapod.rotateToRight();
-  // hexapod.rotateToRight();
-  // hexapod.setDefaultPosition();
-
-  // hexapod.moveForward();
-  // hexapod.setHomePosition();
 
   pinMode(3,OUTPUT);
   digitalWrite(3,HIGH);
@@ -978,10 +918,6 @@ void toggleMovementState(bool &movementState)
 
     if(movementState == true)
     {
-      //isTetrapodGateEnabled = &movementState == &isTetrapodGateEnabled ? isTetrapodGateEnabled : false;
-      //isWaveGateEnabled = &movementState == &isWaveGateEnabled ? isWaveGateEnabled : false;
-      //isTurningRightEnabled = &movementState == &isTurningRightEnabled ? isTurningRightEnabled : false;
-      //isTurningLeftEnabled = &movementState == &isTurningLeftEnabled ? isTurningLeftEnabled : false;
       disableMovementStateAfterTogglingOtherMovementState(isTetrapodGateEnabled, movementState);
       disableMovementStateAfterTogglingOtherMovementState(isWaveGateEnabled, movementState);
       disableMovementStateAfterTogglingOtherMovementState(isTurningRightEnabled, movementState);
