@@ -64,7 +64,7 @@ enum Side
   LEFT
 };
 
-enum LegType
+enum LegPosition
 {
   FRONT,
   MIDDLE,
@@ -85,8 +85,6 @@ enum MovementType
   SET_NEUTRAL_POSITION,
   RISE_LEG,
   LOWER_LEG,
-  ROTATE_FORWARD,
-  ROTATE_BACKWARD,
   ROTATE_TO_RIGHT,
   ROTATE_TO_LEFT,
   ROTATE_TO_MIDDLE
@@ -125,7 +123,7 @@ class Leg
 public:
   Part partsCollection[3];
   Side side;
-  LegType legType;
+  LegPosition legPosition;
   uint8_t movementState;
   int16_t currentIteration;
   int16_t movementIterations;
@@ -135,10 +133,10 @@ public:
 
   Leg() {}
 
-  Leg(Side robotSide, uint8_t lowerPartServoNumber, uint8_t upperPartServoNumber, uint8_t legsConnectorServoNumber, LegType currentLegType, int16_t numberOfMovementIterations)
+  Leg(Side robotSide, uint8_t lowerPartServoNumber, uint8_t upperPartServoNumber, uint8_t legsConnectorServoNumber, LegPosition currentLegPosition, int16_t numberOfMovementIterations)
   {
     side = robotSide;
-    legType = currentLegType;
+    legPosition = currentLegPosition;
     partsCollection[0] = Part(LOWER, lowerPartServoNumber);
     partsCollection[1] = Part(UPPER, upperPartServoNumber);
     partsCollection[2] = Part(CONNECTOR, legsConnectorServoNumber);
@@ -241,8 +239,8 @@ public:
     legsCollection[3] = firstLeftLeg;
     legsCollection[4] = secondLeftLeg;
     legsCollection[5] = thirdLeftLeg;
-    defaultNumberOfIterations = hexapodSettings.numberOfIterations;
-    defaultDelayTime = hexapodSettings.delayTime;
+    defaultNumberOfMovementIterations = hexapodSettings.numberOfIterations;
+    defaultMovementDelayTime = hexapodSettings.delayTime;
   }
 
   void moveForward(GaitType gaitType)
@@ -315,7 +313,7 @@ public:
         {
           case 0:
           {
-            switch (leg.legType)
+            switch (leg.legPosition)
             {
               case FRONT:
               {
@@ -345,7 +343,7 @@ public:
           break;
           case 1:
           {
-            switch (leg.legType)
+            switch (leg.legPosition)
             {
               case FRONT:
               {
@@ -375,7 +373,7 @@ public:
           break;
           case 2:
           {
-            switch (leg.legType)
+            switch (leg.legPosition)
             {
               case FRONT:
               {
@@ -686,8 +684,8 @@ public:
 private:
   Leg legsCollection[6];
   bool targetLegsCollection[6] = {true, true, true, true, true, true};
-  uint8_t defaultNumberOfIterations;
-  uint16_t defaultDelayTime;
+  uint8_t defaultNumberOfMovementIterations;
+  uint16_t defaultMovementDelayTime;
 
   uint8_t cachedTargetAngle;
   int16_t cachedPartTargetAngle;
@@ -731,16 +729,6 @@ private:
       setTargetAngles(110, 110, NULL_VALUE, true);
     }
     break;
-    case ROTATE_FORWARD:
-    {
-      setTargetAngles(NULL_VALUE, NULL_VALUE, 120, true);
-    }
-    break;
-    case ROTATE_BACKWARD:
-    {
-      setTargetAngles(NULL_VALUE, NULL_VALUE, 60, true);
-    }
-    break;
     case ROTATE_TO_RIGHT:
     {
       setTargetAngles(NULL_VALUE, NULL_VALUE, 110, false);
@@ -764,7 +752,7 @@ private:
     }
   }
 
-  void setTargetAngles(int16_t lowerPartTargetAngle, int16_t upperPartTargetAngle, int16_t connectorPartTargetAngle, bool reverseAnglesForOtherSideOfRobot)
+  void setTargetAngles(int16_t tibiaTargetAngle, int16_t femurTargetAngle, int16_t coxaTargetAngle, bool reverseAnglesForOtherSideOfRobot)
   {
     for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
     {
@@ -775,15 +763,15 @@ private:
 
       if (reverseAnglesForOtherSideOfRobot == false || legsCollection[legIndex].side == RIGHT)
       {
-        legsCollection[legIndex].partsCollection[0].targetAngle = lowerPartTargetAngle != NULL_VALUE ? lowerPartTargetAngle : legsCollection[legIndex].partsCollection[0].currentAngle;
-        legsCollection[legIndex].partsCollection[1].targetAngle = upperPartTargetAngle != NULL_VALUE ? upperPartTargetAngle : legsCollection[legIndex].partsCollection[1].currentAngle;
-        legsCollection[legIndex].partsCollection[2].targetAngle = connectorPartTargetAngle != NULL_VALUE ? connectorPartTargetAngle : legsCollection[legIndex].partsCollection[2].currentAngle;
+        legsCollection[legIndex].partsCollection[0].targetAngle = tibiaTargetAngle != NULL_VALUE ? tibiaTargetAngle : legsCollection[legIndex].partsCollection[0].currentAngle;
+        legsCollection[legIndex].partsCollection[1].targetAngle = femurTargetAngle != NULL_VALUE ? femurTargetAngle : legsCollection[legIndex].partsCollection[1].currentAngle;
+        legsCollection[legIndex].partsCollection[2].targetAngle = coxaTargetAngle != NULL_VALUE ? coxaTargetAngle : legsCollection[legIndex].partsCollection[2].currentAngle;
       }
       else
       {
-        legsCollection[legIndex].partsCollection[0].targetAngle = lowerPartTargetAngle != NULL_VALUE ? (90 + (90 - lowerPartTargetAngle)) : legsCollection[legIndex].partsCollection[0].currentAngle;
-        legsCollection[legIndex].partsCollection[1].targetAngle = upperPartTargetAngle != NULL_VALUE ? (90 + (90 - upperPartTargetAngle)) : legsCollection[legIndex].partsCollection[1].currentAngle;
-        legsCollection[legIndex].partsCollection[2].targetAngle = connectorPartTargetAngle != NULL_VALUE ? (90 + (90 - connectorPartTargetAngle)) : legsCollection[legIndex].partsCollection[2].currentAngle;
+        legsCollection[legIndex].partsCollection[0].targetAngle = tibiaTargetAngle != NULL_VALUE ? (90 + (90 - tibiaTargetAngle)) : legsCollection[legIndex].partsCollection[0].currentAngle;
+        legsCollection[legIndex].partsCollection[1].targetAngle = femurTargetAngle != NULL_VALUE ? (90 + (90 - femurTargetAngle)) : legsCollection[legIndex].partsCollection[1].currentAngle;
+        legsCollection[legIndex].partsCollection[2].targetAngle = coxaTargetAngle != NULL_VALUE ? (90 + (90 - coxaTargetAngle)) : legsCollection[legIndex].partsCollection[2].currentAngle;
       }
     }
   }
@@ -800,14 +788,12 @@ private:
 
   void rotateLegsAsynchronously(int16_t numberOfIterations, int16_t delayTime)
   {
-    uint8_t targetAngle;
-    int16_t partTargetAngle;
-    int16_t partCurrentAngle;
-    Leg leg;
-    Part part;
-    numberOfIterations = numberOfIterations == DEFAULT_VALUE ? defaultNumberOfIterations : numberOfIterations;
-    delayTime = delayTime == DEFAULT_VALUE ? defaultDelayTime : delayTime;
-
+    uint8_t targetAngle; int16_t partTargetAngle; int16_t partCurrentAngle; 
+    Leg leg; Part part;
+    numberOfIterations = numberOfIterations == DEFAULT_VALUE ? 
+      defaultNumberOfMovementIterations : numberOfIterations;
+    delayTime = delayTime == DEFAULT_VALUE ? 
+      defaultMovementDelayTime : delayTime;
     for (int16_t iteration = 1; iteration <= numberOfIterations; iteration++)
     {
       for (uint8_t legIndex = 0; legIndex < 6; legIndex++)
@@ -816,21 +802,19 @@ private:
         {
           continue;
         }
-
         leg = legsCollection[legIndex];
-
         for (uint8_t partIndex = 0; partIndex < 3; partIndex++)
         {
           part = leg.partsCollection[partIndex];
           partTargetAngle = (int16_t)part.targetAngle;
           partCurrentAngle = (int16_t)part.currentAngle;
-
           if (partTargetAngle == partCurrentAngle)
           {
             continue;
           }
-
-          targetAngle = partCurrentAngle + (((((partTargetAngle - partCurrentAngle) * 100) / numberOfIterations) * iteration) / 100);
+          targetAngle = partCurrentAngle + 
+            (((((partTargetAngle - partCurrentAngle) * 100) / 
+              numberOfIterations) * iteration) / 100);
           targetAngle = (uint8_t)targetAngle;
           rotate(part.driverNumber, part.partNumber, targetAngle);
           delay(delayTime);
@@ -906,9 +890,6 @@ void setup()
 
 void loop()
 {
-  //hexapod.moveForward(WAVE);
-  // hexapod.moveForward(TETRAPOD);
-  // hexapod.rotateToRight();
   if (irrecv.decode(&results)) 
   {
    logReceivedCode(results.value);
@@ -917,11 +898,10 @@ void loop()
    logWasMovementInLoopActivatedBefore();
    logNewLine();
    respondToSignal();
-   irrecv.resume(); // Receive the next value
+   irrecv.resume();
   }
   
   moveHexapod(); 
-  //delay(100);
 }
 
 void moveHexapod()
