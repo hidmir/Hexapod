@@ -1,5 +1,5 @@
 {
-    "sketch": "Hexapod_Praca_Inzynierska.ino",
+    "sketch": "Hexapod.ino",
     "configuration": "cpu=atmega328",
     "board": "arduino:avr:nano",
     "programmer": "arduino:avrispmkii",
