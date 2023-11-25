@@ -16,11 +16,13 @@ This project involves the construction and programming of a hexapod robot. The h
 
 The hexapod is capable of moving in various ways. Below is a list of available walking modes that can be activated through specific infrared signals:
 
-1. **Tetrapod Gait**: A walking mode where the robot moves using four legs, ensuring stability and smooth movement.
-2. **Wave Gait**: A wave-like walking mode, where legs are lifted and lowered in a wave sequence, allowing for smooth movement.
+1. **Tetrapod Gait**: A walking mode, in which the robot moves on two legs while standing on four, this mode provides greater movement speed but is less stable.
+2. **Wave Gait**: A wave-like walking mode, where legs are lifted and lowered in a wave sequence, allowing for more stable movement.
 3. **Right Rotation**: The robot rotates to the right.
 4. **Left Rotation**: The robot rotates to the left.
 
 ## Demonstration Videos
 
+https://github.com/hidmir/Hexapod/assets/82617434/7b19b4ea-f950-4d5f-a59f-980f8006abf1
 
+https://github.com/hidmir/Hexapod/assets/82617434/6438df94-b966-48ab-9f2c-2256e8d77cc3
